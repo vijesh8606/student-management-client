@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
-// const API_BASE_URL = "http://localhost:2231/api";
+// const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
+const API_BASE_URL = "http://localhost:2231/api";
 
 // console.log(API_BASE_URL);
 

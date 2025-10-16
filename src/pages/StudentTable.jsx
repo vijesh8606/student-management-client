@@ -23,6 +23,7 @@ const StudentTable = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("all");
+  const [selectedBatchYear, setSelectedBatchYear] = useState("all");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -38,18 +39,28 @@ const StudentTable = () => {
     return ["all", ...new Set(students.map((student) => student.course))];
   }, [students]);
 
+  // Get unique batch years for filter
+  const batchYears = useMemo(() => {
+    const years = [...new Set(students.map((student) => student.batchYear))];
+    return ["all", ...years.sort().reverse()]; // Sort years in descending order
+  }, [students]);
+
   // Filter and sort students
   const filteredAndSortedStudents = useMemo(() => {
     let filtered = students.filter((student) => {
       const matchesSearch =
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.course.toLowerCase().includes(searchTerm.toLowerCase());
+        student.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.batchYear.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCourse =
         selectedCourse === "all" || student.course === selectedCourse;
 
-      return matchesSearch && matchesCourse;
+      const matchesBatchYear =
+        selectedBatchYear === "all" || student.batchYear === selectedBatchYear;
+
+      return matchesSearch && matchesCourse && matchesBatchYear;
     });
 
     // Sorting
@@ -63,6 +74,14 @@ const StudentTable = () => {
           bValue = b.totalMarks;
         }
 
+        // Handle batch year sorting (convert to comparable format)
+        if (sortConfig.key === "batchYear") {
+          const aYear = parseInt(a.batchYear.split("-")[0]);
+          const bYear = parseInt(b.batchYear.split("-")[0]);
+          aValue = aYear;
+          bValue = bYear;
+        }
+
         if (aValue < bValue) {
           return sortConfig.direction === "asc" ? -1 : 1;
         }
@@ -74,7 +93,7 @@ const StudentTable = () => {
     }
 
     return filtered;
-  }, [students, searchTerm, selectedCourse, sortConfig]);
+  }, [students, searchTerm, selectedCourse, selectedBatchYear, sortConfig]);
 
   // Pagination
   const paginatedStudents = useMemo(() => {
@@ -146,11 +165,20 @@ const StudentTable = () => {
         : filteredAndSortedStudents;
 
     const csvContent = [
-      ["Name", "Email", "Course", "Total Marks", "Average", "Grade"],
+      [
+        "Name",
+        "Email",
+        "Course",
+        "Batch Year",
+        "Total Marks",
+        "Average",
+        "Grade",
+      ],
       ...dataToExport.map((student) => [
         student.name,
         student.email,
         student.course,
+        student.batchYear,
         student.totalMarks,
         student.average?.toFixed(1),
         student.grade,
@@ -183,6 +211,7 @@ const StudentTable = () => {
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
+          <h1 className="text-2xl font-bold text-gray-900">Students</h1>
           <p className="text-gray-600 mt-1">
             Manage student records, performance, and analytics
           </p>
@@ -208,85 +237,6 @@ const StudentTable = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-blue-600 font-bold text-lg">
-                  {students.length}
-                </span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">
-                Total Students
-              </h3>
-              <p className="text-2xl font-semibold text-gray-900">
-                {students.length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <span className="text-green-600 font-bold text-lg">
-                  {courses.length - 1}
-                </span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">
-                Active Courses
-              </h3>
-              <p className="text-2xl font-semibold text-gray-900">
-                {courses.length - 1}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-purple-600 font-bold text-lg">
-                  {filteredAndSortedStudents.length}
-                </span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Filtered</h3>
-              <p className="text-2xl font-semibold text-gray-900">
-                {filteredAndSortedStudents.length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <span className="text-orange-600 font-bold text-lg">
-                  {selectedStudents.length}
-                </span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Selected</h3>
-              <p className="text-2xl font-semibold text-gray-900">
-                {selectedStudents.length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div> */}
-
       {/* Filters Section */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <div className="flex flex-col lg:flex-row gap-4">
@@ -295,7 +245,7 @@ const StudentTable = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
-                placeholder="Search students by name, email, or course..."
+                placeholder="Search students by name, email, course, or batch year..."
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -314,6 +264,21 @@ const StudentTable = () => {
                 {courses.map((course) => (
                   <option key={course} value={course}>
                     {course === "all" ? "All Courses" : course}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <select
+                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white"
+                value={selectedBatchYear}
+                onChange={(e) => setSelectedBatchYear(e.target.value)}
+              >
+                {batchYears.map((batchYear) => (
+                  <option key={batchYear} value={batchYear}>
+                    {batchYear === "all" ? "All Batches" : batchYear}
                   </option>
                 ))}
               </select>
@@ -343,17 +308,6 @@ const StudentTable = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
-                  <input
-                    type="checkbox"
-                    checked={
-                      paginatedStudents.length > 0 &&
-                      selectedStudents.length === paginatedStudents.length
-                    }
-                    onChange={toggleSelectAll}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                </th> */}
                 <th
                   className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort("name")}
@@ -373,6 +327,15 @@ const StudentTable = () => {
                   <div className="flex items-center space-x-1">
                     <span>Course</span>
                     {getSortIcon("course")}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort("batchYear")}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Batch Year</span>
+                    {getSortIcon("batchYear")}
                   </div>
                 </th>
                 <th
@@ -413,14 +376,6 @@ const StudentTable = () => {
                     key={student._id}
                     className="hover:bg-gray-50 transition-colors duration-150"
                   >
-                    {/* <td className="px-6 py-4 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(student._id)}
-                        onChange={() => toggleStudentSelection(student._id)}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      />
-                    </td> */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center">
@@ -436,9 +391,6 @@ const StudentTable = () => {
                           <div className="text-sm font-medium text-gray-900">
                             {student.name}
                           </div>
-                          {/* <div className="text-sm text-gray-500">
-                            ID: {student._id.slice(-8)}
-                          </div> */}
                         </div>
                       </div>
                     </td>
@@ -453,11 +405,13 @@ const StudentTable = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {student.batchYear}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-4">
                         <div className="text-right">
-                          {/* <div className="text-sm font-medium text-gray-900">
-                            {student.totalMarks} pts
-                          </div> */}
                           <div className="text-sm text-gray-500">
                             {student.average?.toFixed(1)}% avg
                           </div>
@@ -497,12 +451,6 @@ const StudentTable = () => {
                         >
                           <Trash2 size={16} />
                         </button>
-                        {/* <button
-                          className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                          title="View Details"
-                        >
-                          <Eye size={16} />
-                        </button> */}
                       </div>
                     </td>
                   </tr>

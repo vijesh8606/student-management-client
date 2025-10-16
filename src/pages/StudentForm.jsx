@@ -22,6 +22,7 @@ const StudentForm = () => {
     name: "",
     email: "",
     course: "",
+    batchYear: "",
     subjects: [{ name: "", marks: "" }],
   });
 
@@ -39,6 +40,7 @@ const StudentForm = () => {
           name: student.name,
           email: student.email,
           course: student.course,
+          batchYear: student.batchYear,
           subjects: student.subjects.map((sub) => ({
             name: sub.name,
             marks: sub.marks.toString(),
@@ -85,9 +87,26 @@ const StudentForm = () => {
     if (
       !formData.name.trim() ||
       !formData.email.trim() ||
-      !formData.course.trim()
+      !formData.course.trim() ||
+      !formData.batchYear
     ) {
       toast.error("Please fill in all required fields");
+      return false;
+    }
+
+    // Validate batch year format (YYYY-YYYY)
+    const batchYearRegex = /^\d{4}-\d{4}$/;
+    if (!batchYearRegex.test(formData.batchYear)) {
+      toast.error(
+        "Please enter batch year in correct format: YYYY-YYYY (e.g., 2020-2024)"
+      );
+      return false;
+    }
+
+    // Validate that start year is less than end year
+    const [startYear, endYear] = formData.batchYear.split("-").map(Number);
+    if (startYear >= endYear) {
+      toast.error("Start year must be less than end year");
       return false;
     }
 
@@ -204,7 +223,7 @@ const StudentForm = () => {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div>
                 <label
                   htmlFor="course"
                   className="block text-sm font-medium text-gray-700"
@@ -219,8 +238,32 @@ const StudentForm = () => {
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-primary-500 focus:border-primary-500"
                   value={formData.course}
                   onChange={handleChange}
-                  placeholder="e.g., MCA, MBA..."
+                  placeholder="e.g., MCA, MBA, B.Tech..."
                 />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="batchYear"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Batch Year *
+                </label>
+                <input
+                  type="text"
+                  id="batchYear"
+                  name="batchYear"
+                  required
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-primary-500 focus:border-primary-500"
+                  value={formData.batchYear}
+                  onChange={handleChange}
+                  placeholder="e.g., 2020-2024"
+                  pattern="\d{4}-\d{4}"
+                  title="Enter batch year in format: YYYY-YYYY"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Enter batch year in format: YYYY-YYYY (e.g., 2020-2024)
+                </p>
               </div>
             </div>
           </div>
@@ -259,7 +302,7 @@ const StudentForm = () => {
                       onChange={(e) =>
                         handleSubjectChange(index, "name", e.target.value)
                       }
-                      placeholder="e.g., Mathematics, Physics"
+                      placeholder="e.g., Mathematics, Physics, Computer Science"
                     />
                   </div>
 
